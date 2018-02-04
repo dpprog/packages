@@ -1,71 +1,63 @@
 #
-# Copyright (C) 2014 OpenWrt.org
+# Copyright (C) 2014-2015 OpenWrt.org
 #
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mac-telnet
-PKG_VERSION:=2014-09-23
+PKG_VERSION:=0.0.0
 PKG_RELEASE=$(PKG_SOURCE_VERSION)
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/jow-/MAC-Telnet.git
+PKG_SOURCE_URL:=https://github.com/dpprog/MAC-Telnet.git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=269a5d7d53b59a2e4657ad3689e46ac057c22e28
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
+PKG_SOURCE_VERSION:=04c83fce71a504fd8257b1d4a8d48a352e1c6929
+PKG_SOURCE:=$(PKG_NAME)-$(VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 PKG_LICENSE:=GPL-2.0+
-PKG_MAINTAINER:=Jo-Philipp Wich <jow@openwrt.org>
+PKG_MAINTAINER:=Jo-Philipp Wich <jo@mein.io>
+
+PKG_FIXUP:=libtool autoreconf
 
 include $(INCLUDE_DIR)/package.mk
 
-TARGET_CFLAGS += -ffunction-sections -fdata-sections $(if $(CONFIG_MACTELNET_PLAIN_SUPPORT),-DTELNET_SUPPORT)
-TARGET_LDFLAGS += -Wl,--gc-sections
-
-# 1: name
-# 2: executable
-define BuildPlugin
-  define Package/mac-telnet-$(1)
-    SECTION:=net
-    CATEGORY:=Network
-    DEPENDS:=+libubox
-    TITLE:=MAC-Telnet / MAC-SSH $(1)
-    URL:=https://github.com/jow-/MAC-Telnet
-  endef
-
-  define Package/mac-telnet-$(1)/description
-    Open source MAC Telnet client and server utilities for connecting to
-    Mikrotik RouterOS routers and Linux machines via MAC address.
-  endef
-
-  define Package/mac-telnet-$(1)/install
-	$(INSTALL_DIR) $$(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(2) $$(1)/usr/sbin/
-	$(call Package/mac-telnet-$(1)/install-extra)
-  endef
-
-  $$(eval $$(call BuildPackage,mac-telnet-$(1)))
+define Package/mac-telnet/Default
+  SECTION:=net
+  CATEGORY:=Network
+  TITLE:=MAC-Telnet
+  DEPENDS:=+librt
 endef
 
-define Package/mac-telnet-server/config
-  config MACTELNET_PLAIN_SUPPORT
-	bool "Include support for plain telnet connections"
-	depends on PACKAGE_mac-telnet-server
-        default y
-	help
-	  Disable this option to only support SSH logins to the
-	  MAC-Telnet server.
+define Package/mac-telnet-server
+  $(call Package/mac-telnet/Default)
+  TITLE+= server
 endef
 
-define Package/mac-telnet-server/install-extra
-	$(INSTALL_DIR) $$(1)/etc/init.d
-	$(INSTALL_BIN) ./files/mactelnet.init $$(1)/etc/init.d/mactelnet
-	$(INSTALL_DIR) $$(1)/etc/config
-	$(INSTALL_DATA) ./files/mactelnet.config $$(1)/etc/config/mactelnet
+define Package/mac-telnet-client
+  $(call Package/mac-telnet/Default)
+  TITLE+= client
 endef
 
+define Package/mac-telnet-ping
+  $(call Package/mac-telnet/Default)
+  TITLE+= ping
+endef
 
-$(eval $(call BuildPlugin,server,mactelnetd))
-$(eval $(call BuildPlugin,client,mactelnet))
-$(eval $(call BuildPlugin,ping,macping))
-$(eval $(call BuildPlugin,discover,mndp))
+define Package/mac-telnet-server/install
+	$(INSTALL_DIR) $(1)/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/mactelnetd $(1)/bin/
+endef
+
+define Package/mac-telnet-client/install
+	$(INSTALL_DIR) $(1)/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/mactelnet $(1)/bin/
+endef
+
+define Package/mac-telnet-ping/install
+	$(INSTALL_DIR) $(1)/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/macping $(1)/bin/
+endef
+
+$(eval $(call BuildPackage,mac-telnet-server))
+$(eval $(call BuildPackage,mac-telnet-client))
+$(eval $(call BuildPackage,mac-telnet-ping))
